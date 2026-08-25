@@ -1,0 +1,1704 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>UNRULY INTRUSION — Phase 1.5</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    --bg:#05070a;
+    --panel:#0c1119;
+    --panel-edge:#1b2836;
+    --grid-bg:#080b11;
+    --cyan:#2be9ff;
+    --cyan-dim:#12414d;
+    --magenta:#ff2e88;
+    --text-bright:#dff6ff;
+    --text-dim:#5c7385;
+    --danger:#ff3b4e;
+    --amber:#ffcf3d;
+    --orange:#ff8a3d;
+
+    --c-security:#ff3b4e;
+    --c-encrypted:#2e8bff;
+    --c-system:#4fd1c5;
+    --c-power:#ffcf3d;
+    --c-crypto:#39ff88;
+    --c-schematic:#b06bff;
+    --c-bus:#ffffff;
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at 50% -10%, #0c1a22 0%, var(--bg) 55%);
+    color:var(--text-bright);
+    font-family:'JetBrains Mono',monospace;
+    display:flex;
+    justify-content:center;
+    overflow:hidden;
+    user-select:none;
+  }
+
+  #app{
+    width:100%;
+    max-width:460px;
+    height:100vh;
+    height:100dvh;
+    display:flex;
+    flex-direction:column;
+    padding:10px 12px 14px;
+    position:relative;
+  }
+
+  /* scanline overlay */
+  #app::after{
+    content:"";
+    position:absolute; inset:0;
+    pointer-events:none;
+    background:repeating-linear-gradient(
+      to bottom, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px,
+      transparent 1px, transparent 3px
+    );
+    mix-blend-mode:overlay;
+    z-index:50;
+  }
+
+  /* ---------- HUD ---------- */
+  header{flex:0 0 auto;}
+
+  .titlebar{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:8px;
+  }
+  .title{
+    font-family:'Chakra Petch',sans-serif;
+    font-weight:700;
+    font-size:17px;
+    letter-spacing:1px;
+    color:var(--text-bright);
+    display:flex; align-items:center; gap:6px;
+  }
+  .title .cursor{
+    width:8px; height:14px; background:var(--cyan);
+    animation:blink 1s steps(1) infinite;
+    box-shadow:0 0 6px var(--cyan);
+  }
+  .subtitle{
+    font-size:9px; color:var(--text-dim); letter-spacing:1.5px;
+  }
+  @keyframes blink{50%{opacity:0;}}
+
+  .stat-row{
+    display:flex; gap:8px; margin-bottom:8px;
+  }
+  .stat-box{
+    flex:1;
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:6px;
+    padding:6px 8px;
+    position:relative;
+    overflow:hidden;
+  }
+  .stat-label{
+    font-size:8px; color:var(--text-dim); letter-spacing:1px; margin-bottom:2px;
+  }
+  .stat-value{
+    font-family:'Chakra Petch',sans-serif;
+    font-size:16px; font-weight:600; color:var(--cyan);
+    line-height:1;
+  }
+  .stat-value.warn{color:var(--danger); animation:pulseWarn 0.6s infinite;}
+  @keyframes pulseWarn{50%{opacity:0.4;}}
+
+  .stat-value.trace-elevated{color:var(--amber);}
+  .stat-value.trace-warning{color:var(--orange); animation:pulseWarn 1.1s infinite;}
+  .stat-value.trace-critical{color:var(--danger); animation:pulseWarn 0.4s infinite;}
+
+  .objective{
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:6px;
+    padding:7px 9px;
+    margin-bottom:10px;
+  }
+  .objective-top{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:9px; letter-spacing:1px; color:var(--text-dim);
+    margin-bottom:5px;
+  }
+  .objective-top b{color:var(--text-bright); font-weight:500;}
+  .bar-track{
+    height:6px; border-radius:3px; background:#0a1017;
+    border:1px solid var(--panel-edge);
+    overflow:hidden;
+  }
+  .bar-fill{
+    height:100%; width:0%;
+    background:linear-gradient(90deg, var(--cyan-dim), var(--cyan));
+    box-shadow:0 0 8px var(--cyan);
+    transition:width 0.35s ease-out;
+  }
+  .bar-fill.complete{background:linear-gradient(90deg, #0d5, var(--c-crypto));}
+
+  .bank-row{
+    display:flex; justify-content:space-between;
+    font-size:9px; color:var(--text-dim); letter-spacing:0.5px;
+    margin-top:6px;
+  }
+  .bank-row b{color:var(--text-bright); font-weight:600;}
+
+  /* ---------- BOARD ---------- */
+  #board-wrap{
+    position:relative;
+    flex:1 1 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:0;
+    perspective:1000px;
+  }
+  #board{
+    position:relative;
+    isolation:isolate;
+    touch-action:none;
+    width:100%;
+    aspect-ratio:6/7;
+    max-height:100%;
+    transform:rotateX(20deg) scale(1.04);
+    transform-style:preserve-3d;
+    transform-origin:50% 100%;
+    box-shadow:0 34px 46px -22px rgba(0,0,0,0.65);
+  }
+  #pathwaysLayer{
+    position:absolute; inset:0;
+    pointer-events:none;
+    overflow:visible;
+    z-index:1;
+  }
+  #nodesLayer{
+    position:absolute; inset:0;
+    display:grid;
+    gap:6px;
+    z-index:5;
+  }
+  #linelayer{
+    position:absolute; inset:0;
+    pointer-events:none;
+    overflow:visible;
+    z-index:8;
+  }
+  #avatarLayer{
+    position:absolute; inset:0;
+    pointer-events:none;
+    z-index:15;
+  }
+  .avatar-anchor{
+    position:absolute; top:0; left:0;
+    width:0; height:0;
+    transition:transform 110ms linear;
+  }
+  .avatar-facing{
+    position:absolute; top:0; left:0;
+    transition:transform 90ms linear;
+  }
+  .avatar-facing.flip{ transform:scaleX(-1); }
+  .avatar-figure{
+    position:absolute; left:0; top:0;
+    width:14px; height:24px;
+    transform:translate(-50%,-50%);
+    animation:avatarIdle 1.6s ease-in-out infinite;
+  }
+  .avatar-figure.walking{ animation:walkBounce 220ms ease-in-out infinite; }
+  .avatar-figure .body{
+    position:absolute; left:50%; top:6px; width:12px; height:14px;
+    background:linear-gradient(180deg,#1c2733,#0a0f16);
+    border-radius:6px 6px 4px 4px;
+    transform:translateX(-50%);
+    box-shadow:0 0 6px rgba(43,233,255,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+    z-index:2;
+  }
+  .avatar-figure .head{
+    position:absolute; left:50%; top:0; width:10px; height:9px;
+    background:linear-gradient(180deg,#1c2733,#0a0f16);
+    border-radius:50% 50% 45% 45%;
+    transform:translateX(-50%);
+    box-shadow:0 0 8px rgba(43,233,255,0.35);
+    z-index:2;
+  }
+  .avatar-figure .head::after{
+    content:"";
+    position:absolute; left:50%; top:55%; width:6px; height:2px;
+    background:var(--cyan);
+    border-radius:1px;
+    transform:translate(-50%,-50%);
+    box-shadow:0 0 6px var(--cyan), 0 0 10px var(--cyan);
+  }
+  .avatar-figure .leg{
+    position:absolute; top:17px; width:3px; height:6px;
+    background:linear-gradient(180deg,var(--cyan),#0f6b78);
+    border-radius:2px;
+    transform-origin:top center;
+    z-index:1;
+  }
+  .avatar-figure .leg-left{ left:calc(50% - 4px); }
+  .avatar-figure .leg-right{ left:calc(50% + 1px); }
+  .avatar-figure .foot{
+    position:absolute; bottom:-2px; left:50%; width:5px; height:2px;
+    background:#eafcff; border-radius:2px;
+    transform:translateX(-50%);
+    box-shadow:0 0 4px var(--cyan);
+  }
+  .avatar-figure.walking .leg-left{ animation:stepLeft 220ms ease-in-out infinite; }
+  .avatar-figure.walking .leg-right{ animation:stepRight 220ms ease-in-out infinite; }
+  @keyframes stepLeft{ 0%,100%{ transform:rotate(-18deg); } 50%{ transform:rotate(18deg); } }
+  @keyframes stepRight{ 0%,100%{ transform:rotate(18deg); } 50%{ transform:rotate(-18deg); } }
+  @keyframes avatarIdle{ 50%{ transform:translate(-50%,-58%); } }
+  @keyframes walkBounce{ 50%{ transform:translate(-50%,-53%); } }
+  .avatar-figure.arrive{ animation:avatarIdle 1.6s ease-in-out infinite, arrivePulse 320ms ease-out; }
+  @keyframes arrivePulse{
+    0%{filter:drop-shadow(0 0 0px #fff);}
+    40%{filter:drop-shadow(0 0 10px #fff);}
+    100%{filter:drop-shadow(0 0 0px #fff);}
+  }
+  .trail-dot{
+    position:absolute; width:6px; height:6px; border-radius:50%;
+    background:var(--cyan); opacity:0.6;
+    transform:translate(-50%,-50%);
+    animation:trailFade 520ms ease-out forwards;
+    pointer-events:none;
+  }
+  @keyframes trailFade{ to{ opacity:0; transform:translate(-50%,-50%) scale(0.3);} }
+
+  .node{
+    position:relative;
+    border-radius:7px;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(160deg, rgba(255,255,255,0.07), transparent 55%), var(--grid-bg);
+    border:1px solid #16202b;
+    font-size:clamp(14px,4.2vw,20px);
+    animation:pop 260ms cubic-bezier(.2,.9,.3,1.2) both;
+  }
+  @keyframes pop{
+    from{transform:scale(0.35); opacity:0;}
+    to{transform:scale(1); opacity:1;}
+  }
+  .node .glyph{
+    filter:drop-shadow(0 0 3px currentColor);
+    opacity:0.95;
+  }
+  .node[data-type="security"]{color:var(--c-security);}
+  .node[data-type="encrypted"]{color:var(--c-encrypted);}
+  .node[data-type="system"]{color:var(--c-system);}
+  .node[data-type="power"]{color:var(--c-power);}
+  .node[data-type="crypto"]{color:var(--c-crypto);}
+  .node[data-type="schematic"]{color:var(--c-schematic);}
+  .node[data-type]{
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,0.07),
+      inset 0 -4px 0 rgba(0,0,0,0.45),
+      0 3px 0 rgba(0,0,0,0.55),
+      inset 0 0 0 1px currentColor,
+      0 0 10px -2px currentColor;
+  }
+  .node[data-type="bus"]{
+    color:var(--c-bus);
+    background:radial-gradient(circle, rgba(255,255,255,0.15), var(--grid-bg));
+    animation:pop 260ms cubic-bezier(.2,.9,.3,1.2) both, busGlow 1.1s ease-in-out infinite alternate;
+  }
+  @keyframes busGlow{
+    from{ box-shadow:0 0 0 2px #fff, 0 0 10px #fff, 0 0 18px var(--magenta); }
+    to{ box-shadow:0 0 0 2px #fff, 0 0 22px #fff, 0 0 38px var(--magenta); }
+  }
+
+  .node[data-type="security"].hostile{
+    animation:pop 260ms cubic-bezier(.2,.9,.3,1.2) both, hostilePulse 0.8s ease-in-out infinite;
+  }
+  @keyframes hostilePulse{
+    0%,100%{ box-shadow:inset 0 2px 0 rgba(255,255,255,0.07), inset 0 -4px 0 rgba(0,0,0,0.45), 0 3px 0 rgba(0,0,0,0.55), inset 0 0 0 1px var(--c-security), 0 0 8px var(--c-security); }
+    50%{ box-shadow:inset 0 2px 0 rgba(255,255,255,0.07), inset 0 -4px 0 rgba(0,0,0,0.45), 0 3px 0 rgba(0,0,0,0.55), inset 0 0 0 2px var(--c-security), 0 0 20px var(--c-security); }
+  }
+
+  .node.selected{
+    background:radial-gradient(circle, rgba(255,255,255,0.1), transparent 70%), var(--grid-bg);
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,0.07),
+      inset 0 -4px 0 rgba(0,0,0,0.45),
+      0 3px 0 rgba(0,0,0,0.55),
+      0 0 0 2px currentColor, 0 0 14px currentColor;
+    transform:scale(1.06);
+    transition:transform 90ms ease-out;
+  }
+  .node.invalid{animation:shakeInvalid 260ms ease-in-out;}
+  @keyframes shakeInvalid{
+    0%,100%{transform:translateX(0);}
+    25%{transform:translateX(-3px);}
+    75%{transform:translateX(3px);}
+  }
+  .node.avatar-pulse{ animation:pop 260ms cubic-bezier(.2,.9,.3,1.2) both, nodePulse 300ms ease-out; }
+  @keyframes nodePulse{
+    0%{ box-shadow:0 0 0 0 rgba(255,255,255,0.6); }
+    100%{ box-shadow:0 0 0 10px rgba(255,255,255,0); }
+  }
+
+  /* ---------- feedback layer ---------- */
+  #feedback{
+    position:absolute; left:0; right:0; top:38%;
+    display:flex; flex-direction:column; align-items:center;
+    pointer-events:none; z-index:40;
+  }
+  .floater{
+    font-family:'Chakra Petch',sans-serif;
+    font-weight:700;
+    text-align:center;
+    animation:floatUp 900ms ease-out forwards;
+  }
+  .floater.points{font-size:22px; color:var(--cyan); text-shadow:0 0 10px var(--cyan);}
+  .floater.combo{font-size:14px; color:var(--magenta); text-shadow:0 0 8px var(--magenta); margin-top:2px;}
+  .floater.data{font-size:11px; color:var(--c-crypto); margin-top:2px;}
+  @keyframes floatUp{
+    0%{opacity:0; transform:translateY(6px) scale(0.9);}
+    15%{opacity:1; transform:translateY(0) scale(1);}
+    80%{opacity:1;}
+    100%{opacity:0; transform:translateY(-26px) scale(1.02);}
+  }
+
+  .toast{
+    position:absolute; left:50%; top:14%;
+    transform:translateX(-50%);
+    background:rgba(6,10,15,0.92);
+    border:1px solid var(--cyan);
+    color:var(--cyan);
+    font-family:'Chakra Petch',sans-serif;
+    font-weight:600;
+    font-size:12px;
+    letter-spacing:1px;
+    padding:8px 14px;
+    border-radius:6px;
+    box-shadow:0 0 16px rgba(43,233,255,0.35);
+    z-index:45;
+    max-width:88%;
+    text-align:center;
+    animation:toastIn 3.2s ease-out forwards;
+  }
+  @keyframes toastIn{
+    0%{opacity:0; transform:translate(-50%,-8px);}
+    10%{opacity:1; transform:translate(-50%,0);}
+    85%{opacity:1;}
+    100%{opacity:0; transform:translate(-50%,-8px);}
+  }
+
+  /* ---------- footer ---------- */
+  footer{
+    flex:0 0 auto;
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:10px;
+    gap:8px;
+  }
+  .hint{font-size:9px; color:var(--text-dim); letter-spacing:0.5px;}
+  .btn-ghost{ color:var(--text-dim); font-size:10px; }
+  .btn-ghost.urgent{
+    color:var(--danger); border-color:var(--danger);
+    animation:jackOutUrgent 0.55s ease-in-out infinite;
+  }
+  .btn{
+    font-family:'Chakra Petch',sans-serif;
+    font-weight:600;
+    font-size:11px;
+    letter-spacing:1px;
+    color:var(--text-bright);
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:5px;
+    padding:7px 12px;
+    cursor:pointer;
+  }
+  .btn:active{background:#131c26;}
+  .btn.primary{border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 10px rgba(43,233,255,0.25);}
+  .btn.urgent{
+    border-color:var(--danger); color:var(--danger);
+    animation:jackOutUrgent 0.55s ease-in-out infinite;
+  }
+  @keyframes jackOutUrgent{
+    0%,100%{ box-shadow:0 0 8px rgba(255,59,78,0.35); }
+    50%{ box-shadow:0 0 18px rgba(255,59,78,0.85); }
+  }
+  .btn[disabled]{opacity:0.4; cursor:default;}
+
+  /* ---------- title screen overlay ---------- */
+  #title-screen{
+    position:absolute; inset:0;
+    background:rgba(5,7,10,0.97);
+    z-index:200;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding:20px;
+  }
+  #title-screen.hidden{display:none;}
+  .title-content{text-align:center; width:100%; max-width:300px;}
+  .title-logo{
+    font-family:'Chakra Petch',sans-serif;
+    font-size:24px; font-weight:700;
+    color:var(--cyan);
+    text-shadow:0 0 14px var(--cyan);
+    margin:0 0 6px 0;
+    letter-spacing:2px;
+  }
+  .title-sub{
+    font-size:10px; color:var(--text-dim);
+    letter-spacing:2px; margin-bottom:32px;
+  }
+  .btn-large{
+    font-size:13px; padding:12px 20px; width:100%;
+  }
+  .profile-btn-right{
+    position:absolute; bottom:20px; right:20px;
+    border-color:var(--cyan-dim); color:var(--text-bright);
+    font-size:10px; padding:8px 12px;
+  }
+
+  /* ---------- profile entry overlay ---------- */
+  #profile-overlay{
+    position:absolute; inset:0;
+    background:rgba(3,5,8,0.94);
+    z-index:210;
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  #profile-overlay.hidden{display:none;}
+
+  /* ---------- summary overlay ---------- */
+  #summary-overlay{
+    position:absolute; inset:0;
+    background:rgba(3,5,8,0.94);
+    z-index:100;
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  #summary-overlay.hidden{display:none;}
+  .report{
+    width:100%; max-width:360px;
+    max-height:88vh;
+    overflow-y:auto;
+    border:1px solid var(--cyan-dim);
+    background:var(--panel);
+    border-radius:8px;
+    padding:18px 18px 16px;
+    box-shadow:0 0 30px rgba(43,233,255,0.12);
+  }
+  .report h2{
+    font-family:'Chakra Petch',sans-serif;
+    font-size:15px; letter-spacing:2px; margin:0 0 3px;
+    color:var(--text-bright);
+  }
+  .report .status{
+    font-size:10px; letter-spacing:1px; color:var(--cyan); margin-bottom:14px;
+  }
+  .report .status.fail{color:var(--danger);}
+  .report-row{
+    display:flex; justify-content:space-between;
+    font-size:11px; padding:5px 0;
+    border-bottom:1px dashed #182430;
+  }
+  .report-row span:first-child{color:var(--text-dim); letter-spacing:0.5px;}
+  .report-row span:last-child{color:var(--text-bright); font-weight:600;}
+  .classification{
+    margin-top:14px; text-align:center;
+    padding:10px;
+    border:1px solid var(--magenta);
+    border-radius:6px;
+    background:rgba(255,46,136,0.06);
+  }
+  .classification .tag{
+    font-family:'Chakra Petch',sans-serif;
+    font-size:18px; font-weight:700; letter-spacing:2px;
+    color:var(--magenta); text-shadow:0 0 10px rgba(255,46,136,0.5);
+  }
+  .classification .desc{font-size:9px; color:var(--text-dim); margin-top:3px; letter-spacing:0.5px;}
+  .report .btn{width:100%; margin-top:16px; text-align:center;}
+
+  /* ---------- breach terminal minigame ---------- */
+  #breach-overlay{
+    position:absolute; inset:0;
+    background:rgba(3,5,8,0.94);
+    z-index:110;
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  #breach-overlay.hidden{display:none;}
+  .breach-panel{
+    width:100%; max-width:340px;
+    border:1px solid var(--magenta);
+    background:var(--panel);
+    border-radius:8px;
+    padding:16px 16px 14px;
+    box-shadow:0 0 30px rgba(255,46,136,0.18);
+    text-align:center;
+  }
+  .breach-panel h2{
+    font-family:'Chakra Petch',sans-serif;
+    font-size:14px; letter-spacing:2px; margin:0 0 3px;
+    color:var(--text-bright);
+  }
+  .breach-sub{
+    font-size:9px; letter-spacing:1px; color:var(--text-dim); margin-bottom:12px;
+  }
+  .breach-timerbar{
+    height:4px; border-radius:2px; background:#0a1017;
+    border:1px solid var(--panel-edge);
+    overflow:hidden; margin-bottom:14px;
+  }
+  .breach-timerbar-fill{
+    height:100%; width:100%;
+    background:linear-gradient(90deg, var(--magenta), var(--cyan));
+    transition:width 90ms linear;
+  }
+  .breach-slots{
+    display:flex; justify-content:center; gap:8px; margin-bottom:16px;
+  }
+  .breach-slot{
+    width:34px; height:34px; border-radius:6px;
+    border:1px solid var(--panel-edge);
+    background:var(--grid-bg);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; color:var(--text-dim);
+  }
+  .breach-slot.filled{ color:var(--text-bright); }
+  .breach-slot.reveal{
+    animation:breachReveal 400ms ease-out;
+    box-shadow:0 0 0 2px #fff, 0 0 14px #fff;
+  }
+  @keyframes breachReveal{
+    0%{ transform:scale(0.7); opacity:0.3; }
+    60%{ transform:scale(1.12); }
+    100%{ transform:scale(1); opacity:1; }
+  }
+  .breach-keys{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;
+  }
+  .breach-key{
+    aspect-ratio:1; border-radius:8px;
+    border:1px solid var(--panel-edge);
+    background:var(--grid-bg);
+    font-size:20px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .breach-key:active{ transform:scale(0.94); }
+  .breach-key[disabled]{ opacity:0.35; }
+  .breach-key[data-type="security"]{ color:var(--c-security); box-shadow:inset 0 0 0 1px currentColor; }
+  .breach-key[data-type="encrypted"]{ color:var(--c-encrypted); box-shadow:inset 0 0 0 1px currentColor; }
+  .breach-key[data-type="system"]{ color:var(--c-system); box-shadow:inset 0 0 0 1px currentColor; }
+  .breach-key[data-type="power"]{ color:var(--c-power); box-shadow:inset 0 0 0 1px currentColor; }
+  .breach-key[data-type="crypto"]{ color:var(--c-crypto); box-shadow:inset 0 0 0 1px currentColor; }
+  .breach-key[data-type="schematic"]{ color:var(--c-schematic); box-shadow:inset 0 0 0 1px currentColor; }
+  .breach-result{
+    margin-top:12px; font-family:'Chakra Petch',sans-serif;
+    font-size:13px; font-weight:700; letter-spacing:1px;
+    min-height:16px;
+  }
+  .breach-result.success{ color:var(--c-crypto); }
+  .breach-result.fail{ color:var(--danger); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="titlebar">
+      <div class="title">UNRULY_INTRUSION<span class="cursor"></span></div>
+      <div class="subtitle">PHASE 1.5</div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-label">SCORE</div>
+        <div class="stat-value" id="scoreVal">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">TRACE</div>
+        <div class="stat-value" id="traceVal">0%</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">UPLINK</div>
+        <div class="stat-value" id="timerVal">01:15</div>
+      </div>
+    </div>
+
+    <div class="objective">
+      <div class="objective-top"><span id="objLabel">OBJECTIVE — EXFILTRATE DATA</span><b id="dataVal">0 / 500 GB</b></div>
+      <div class="bar-track"><div class="bar-fill" id="objBar"></div></div>
+      <div class="bank-row">
+        <span>BANKED: <b id="bankedVal">0 GB</b></span>
+        <span>ONBOARD: <b id="onboardVal">0 GB</b></span>
+      </div>
+    </div>
+  </header>
+
+  <div id="board-wrap">
+    <div id="board">
+      <svg id="pathwaysLayer"></svg>
+      <div id="nodesLayer"></div>
+      <svg id="linelayer"></svg>
+      <div id="avatarLayer">
+        <div class="avatar-anchor" id="avatarAnchor">
+          <div class="avatar-facing" id="avatarFacing">
+            <div class="avatar-figure" id="avatarFigure">
+              <div class="head"></div>
+              <div class="body"></div>
+              <div class="leg leg-left"><div class="foot"></div></div>
+              <div class="leg leg-right"><div class="foot"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="feedback"></div>
+  </div>
+
+  <footer>
+    <button class="btn btn-ghost" id="abandonBtn">ABANDON</button>
+    <button class="btn" id="jackOutBtn" disabled>OBJECTIVE INCOMPLETE</button>
+  </footer>
+
+</div>
+
+<div id="title-screen">
+  <div class="title-content">
+    <div class="title-logo">UNRULY_INTRUSION</div>
+    <div class="title-sub">PHASE 1.5 // CYBERNETIC EXFILTRATION</div>
+    <button class="btn primary btn-large" id="startBtn">INITIALIZE UPLINK</button>
+  </div>
+  <button class="btn profile-btn-right" id="profileBtn">PROFILE ENTRY</button>
+</div>
+
+<div id="profile-overlay" class="hidden">
+  <div class="report">
+    <h2>AGENT PROFILE</h2>
+    <div class="status">CREDENTIALS ENTRY</div>
+    <div style="margin: 15px 0;">
+      <label style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 5px; letter-spacing: 1px;">HANDLE / CALLSIGN</label>
+      <input type="text" id="agentNameInput" value="OPERATIVE_01" style="width: 100%; background: #080b11; border: 1px solid var(--panel-edge); color: var(--cyan); padding: 8px; font-family: inherit; font-size: 12px; border-radius: 4px; outline: none;">
+    </div>
+    <button class="btn primary" id="saveProfileBtn">SAVE & RETURN</button>
+  </div>
+</div>
+
+<div id="summary-overlay" class="hidden">
+  <div class="report">
+    <h2>RUN TERMINATED</h2>
+    <div class="status" id="reportStatus">CONNECTION CLOSED</div>
+    <div class="report-row"><span>DATA BANKED</span><span id="rBanked">0 GB</span></div>
+    <div class="report-row"><span>DATA LOST</span><span id="rLost">0 GB</span></div>
+    <div class="report-row"><span>EXTRACTIONS</span><span id="rExtractions">0</span></div>
+    <div class="report-row"><span>MAX TRACE</span><span id="rMaxTrace">0%</span></div>
+    <div class="report-row"><span>FINAL SCORE</span><span id="rScore">0</span></div>
+    <div class="report-row"><span>LONGEST CHAIN</span><span id="rLongest">0</span></div>
+    <div class="report-row"><span>AVG CHAIN</span><span id="rAvg">0.0</span></div>
+    <div class="report-row"><span>PEAK COMBO</span><span id="rCombo">×0</span></div>
+    <div class="classification">
+      <div class="tag" id="rTag">GHOST</div>
+      <div class="desc" id="rTagDesc">minimal footprint, clean uplink</div>
+    </div>
+    <button class="btn primary" id="reconnectBtn">RECONNECT</button>
+  </div>
+</div>
+
+<div id="breach-overlay" class="hidden">
+  <div class="breach-panel">
+    <h2>CIPHER LOCK ENGAGED</h2>
+    <div class="breach-sub">RECONSTRUCT THE DECRYPTION KEY</div>
+    <div class="breach-timerbar"><div class="breach-timerbar-fill" id="breachTimerFill"></div></div>
+    <div class="breach-slots" id="breachSlots"></div>
+    <div class="breach-keys" id="breachKeys"></div>
+    <div class="breach-result" id="breachResult"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- audio engine ----------
+  var audioCtx = null;
+  var humOsc = null, humGain = null;
+
+  function getAudioCtx(){
+    if (!audioCtx) {
+      var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) audioCtx = new AudioContextClass();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  function startHum(){
+    var ctx = getAudioCtx();
+    if (!ctx || humOsc) return;
+    try {
+      humOsc = ctx.createOscillator();
+      humGain = ctx.createGain();
+      humOsc.type = 'sine';
+      humOsc.frequency.setValueAtTime(55, ctx.currentTime);
+      var filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(120, ctx.currentTime);
+      
+      humGain.gain.setValueAtTime(0.02, ctx.currentTime);
+      
+      humOsc.connect(filter);
+      filter.connect(humGain);
+      humGain.connect(ctx.destination);
+      humOsc.start();
+    } catch(e){}
+  }
+
+  function stopHum(){
+    if (humOsc) {
+      try { humOsc.stop(); } catch(e){}
+      humOsc = null;
+    }
+  }
+
+  function playSelectSound(pitchIdx){
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+    try {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sine';
+      var freq = 340 + (pitchIdx || 0) * 45;
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.3, ctx.currentTime + 0.04);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
+    } catch(e){}
+  }
+
+  function playDeselectSound(){
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+    try {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(300, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.04);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.04);
+    } catch(e){}
+  }
+
+  function playEnterSound(){
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+    try {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.05);
+      gain.gain.setValueAtTime(0.04, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    } catch(e){}
+  }
+
+  // ---------- config ----------
+  var COLS = 6, ROWS = 7;
+  var RUN_SECONDS = 75;
+  var TARGET_GB = 500;
+  var COMBO_WINDOW_MS = 2600;
+  var MIN_CHAIN = 3;
+  var BUS_CHAIN_THRESHOLD = 10;
+  var TRACE_JACKOUT_REDUCTION = 55;
+  var BREACH_SEQUENCE_LEN = 3;
+  var BREACH_REVEAL_MS = 550;
+  var BREACH_TIME_LIMIT_MS = 6000;
+  var BREACH_SUCCESS_GB = 40;
+  var BREACH_SUCCESS_SCORE = 150;
+  var BREACH_FAIL_TRACE = 8;
+  var HOP_MS = 90;
+
+  var TYPES = ["security","encrypted","system","power","crypto","schematic"];
+  var META = {
+    security:  { glyph:"▲", value:5,  gb:2.0, weight:20 },
+    encrypted: { glyph:"◈", value:8,  gb:2.6, weight:16 },
+    system:    { glyph:"▣", value:4,  gb:1.6, weight:22 },
+    power:     { glyph:"⚡", value:6,  gb:2.2, weight:18 },
+    crypto:    { glyph:"◎", value:10, gb:3.4, weight:14 },
+    schematic: { glyph:"⬡", value:13, gb:4.2, weight:10 },
+    bus:       { glyph:"◇", value:15, gb:5.0 }
+  };
+  var START_ROW = ROWS - 1, START_COL = Math.floor(COLS / 2);
+
+  function weightedType(){
+    var securityBoost = trace >= 90 ? 2.6 : (trace >= 75 ? 1.6 : 1);
+    var total = 0, k;
+    for (k in META){
+      if (k === "bus") continue;
+      total += META[k].weight * (k === "security" ? securityBoost : 1);
+    }
+    var r = Math.random() * total;
+    for (k in META){
+      if (k === "bus") continue;
+      var w = META[k].weight * (k === "security" ? securityBoost : 1);
+      r -= w;
+      if (r <= 0) return k;
+    }
+    return "system";
+  }
+
+  // ---------- state ----------
+  var grid = [];              // grid[row][col] = type string ('security'...'bus')
+  var score = 0;
+  var bankedGB = 0;
+  var unbankedGB = 0;
+  var trace = 0;
+  var maxTrace = 0;
+  var objectiveComplete = false;
+  var objectiveCompletedAtElapsed = null;
+  var extractionCount = 0;
+  var dataLostToTrace = 0;
+  var busOverridesUsedTotal = 0;
+
+  var combo = 0;
+  var maxCombo = 0;
+  var lastClearTime = 0;
+  var timeLeft = RUN_SECONDS;
+  var timerHandle = null;
+  var running = false;
+
+  var chain = [];             // array of {row,col,type}
+  var dragging = false;
+  var busArmedFlashed = false;
+
+  var typeClearCounts = {};
+  var chainLengths = [];
+
+  var playerPosition = { row: START_ROW, col: START_COL };
+
+  // ---------- dom refs ----------
+  var boardEl = document.getElementById("board");
+  var pathwaysLayer = document.getElementById("pathwaysLayer");
+  var nodesLayer = document.getElementById("nodesLayer");
+  var lineLayer = document.getElementById("linelayer");
+  var avatarLayer = document.getElementById("avatarLayer");
+  var avatarAnchor = document.getElementById("avatarAnchor");
+  var avatarFacing = document.getElementById("avatarFacing");
+  var avatarFigure = document.getElementById("avatarFigure");
+  var feedbackEl = document.getElementById("feedback");
+  var scoreVal = document.getElementById("scoreVal");
+  var traceVal = document.getElementById("traceVal");
+  var timerVal = document.getElementById("timerVal");
+  var dataVal = document.getElementById("dataVal");
+  var objLabel = document.getElementById("objLabel");
+  var objBar = document.getElementById("objBar");
+  var bankedVal = document.getElementById("bankedVal");
+  var onboardVal = document.getElementById("onboardVal");
+  var jackOutBtn = document.getElementById("jackOutBtn");
+  var abandonBtn = document.getElementById("abandonBtn");
+  var abandonArmed = false;
+  var abandonArmTimeout = null;
+  var titleScreen = document.getElementById("title-screen");
+  var startBtn = document.getElementById("startBtn");
+  var profileBtn = document.getElementById("profileBtn");
+  var profileOverlay = document.getElementById("profile-overlay");
+  var saveProfileBtn = document.getElementById("saveProfileBtn");
+  var summaryOverlay = document.getElementById("summary-overlay");
+  var reconnectBtn = document.getElementById("reconnectBtn");
+  var breachOverlay = document.getElementById("breach-overlay");
+  var breachSlotsEl = document.getElementById("breachSlots");
+  var breachKeysEl = document.getElementById("breachKeys");
+  var breachResultEl = document.getElementById("breachResult");
+  var breachTimerFill = document.getElementById("breachTimerFill");
+  var breachActive = false;
+
+  nodesLayer.style.gridTemplateColumns = "repeat(" + COLS + ", 1fr)";
+  nodesLayer.style.gridTemplateRows = "repeat(" + ROWS + ", 1fr)";
+
+  // ---------- init ----------
+  function newGrid(){
+    grid = [];
+    for (var r = 0; r < ROWS; r++){
+      var row = [];
+      for (var c = 0; c < COLS; c++) row.push(weightedType());
+      grid.push(row);
+    }
+  }
+
+  function resetTypeCounts(){
+    typeClearCounts = { security:0, encrypted:0, system:0, power:0, crypto:0, schematic:0, bus:0 };
+  }
+
+  function resetRun(){
+    trace = 0; // must be reset before newGrid() since weightedType() reads trace
+    newGrid();
+    score = 0; bankedGB = 0; unbankedGB = 0;
+    maxTrace = 0; objectiveComplete = false; objectiveCompletedAtElapsed = null;
+    extractionCount = 0; dataLostToTrace = 0; busOverridesUsedTotal = 0;
+    combo = 0; maxCombo = 0; lastClearTime = 0;
+    timeLeft = RUN_SECONDS; running = true;
+    resetTypeCounts();
+    chainLengths = [];
+    chain = []; dragging = false; busArmedFlashed = false;
+    summaryOverlay.classList.add("hidden");
+    render();
+    renderPathways();
+    clearTrails();
+    placeAvatarInstant(START_ROW, START_COL);
+    updateHud();
+    clearInterval(timerHandle);
+    timerHandle = setInterval(tick, 1000);
+    startHum();
+  }
+
+  // ---------- rendering ----------
+  function render(){
+    var html = "";
+    for (var r = 0; r < ROWS; r++){
+      for (var c = 0; c < COLS; c++){
+        var t = grid[r][c];
+        var delay = (r * 28) + "ms";
+        var hostile = (t === "security" && trace >= 75) ? " hostile" : "";
+        html += '<div class="node' + hostile + '" data-type="' + t + '" data-row="' + r + '" data-col="' + c +
+                '" style="animation-delay:' + delay + '"><span class="glyph">' + META[t].glyph + '</span></div>';
+      }
+    }
+    nodesLayer.innerHTML = html;
+  }
+
+  function cellEl(row, col){
+    return nodesLayer.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
+  }
+
+  function cellCenter(row, col){
+    var el = cellEl(row, col);
+    if (!el) return { x: 0, y: 0 };
+    return {
+      x: el.offsetLeft + el.offsetWidth / 2,
+      y: el.offsetTop + el.offsetHeight / 2
+    };
+  }
+
+  function renderPathways(){
+    var w = boardEl.offsetWidth, h = boardEl.offsetHeight;
+    if (!w || !h) return;
+    pathwaysLayer.setAttribute("viewBox", "0 0 " + w + " " + h);
+    pathwaysLayer.setAttribute("width", w);
+    pathwaysLayer.setAttribute("height", h);
+    var parts = [];
+    for (var r = 0; r < ROWS; r++){
+      for (var c = 0; c < COLS; c++){
+        var p1 = cellCenter(r, c);
+        if (c + 1 < COLS){
+          var p2 = cellCenter(r, c + 1);
+          parts.push('<line x1="' + p1.x + '" y1="' + p1.y + '" x2="' + p2.x + '" y2="' + p2.y +
+            '" stroke="rgba(43,233,255,0.16)" stroke-width="1.5" stroke-linecap="round"/>');
+        }
+        if (r + 1 < ROWS){
+          var p3 = cellCenter(r + 1, c);
+          parts.push('<line x1="' + p1.x + '" y1="' + p1.y + '" x2="' + p3.x + '" y2="' + p3.y +
+            '" stroke="rgba(43,233,255,0.16)" stroke-width="1.5" stroke-linecap="round"/>');
+        }
+        parts.push('<circle cx="' + p1.x + '" cy="' + p1.y + '" r="1.6" fill="rgba(43,233,255,0.28)"/>');
+      }
+    }
+    pathwaysLayer.innerHTML = parts.join("");
+  }
+
+  function setSelected(){
+    var all = nodesLayer.querySelectorAll(".node");
+    all.forEach(function(el){ el.classList.remove("selected"); });
+    chain.forEach(function(n){
+      var el = cellEl(n.row, n.col);
+      if (el) el.classList.add("selected");
+    });
+    drawLine();
+  }
+
+  function drawLine(){
+    if (chain.length < 2){
+      lineLayer.innerHTML = "";
+      return;
+    }
+    var w = boardEl.offsetWidth, h = boardEl.offsetHeight;
+    lineLayer.setAttribute("viewBox", "0 0 " + w + " " + h);
+    lineLayer.setAttribute("width", w);
+    lineLayer.setAttribute("height", h);
+    var strokeColor = getComputedStyle(document.documentElement).getPropertyValue("--cyan").trim();
+    var pts = chain.map(function(n){
+      var p = cellCenter(n.row, n.col);
+      return p.x + "," + p.y;
+    }).join(" ");
+    lineLayer.innerHTML =
+      '<polyline points="' + pts + '" fill="none" stroke="' + strokeColor + '" ' +
+      'stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 7" opacity="0.9" ' +
+      'style="filter:drop-shadow(0 0 5px ' + strokeColor + ')"></polyline>';
+  }
+
+  // ---------- avatar ----------
+  function clearTrails(){
+    avatarLayer.querySelectorAll(".trail-dot").forEach(function(d){ d.remove(); });
+  }
+
+  function placeAvatarInstant(row, col){
+    playerPosition = { row: row, col: col };
+    var p = cellCenter(row, col);
+    avatarAnchor.style.transition = "none";
+    avatarAnchor.style.transform = "translate(" + p.x + "px," + p.y + "px)";
+    void avatarAnchor.offsetWidth; // force reflow so transition removal takes effect next frame
+    avatarAnchor.style.transition = "";
+  }
+
+  function moveAvatarTo(row, col){
+    var p = cellCenter(row, col);
+    avatarAnchor.style.transform = "translate(" + p.x + "px," + p.y + "px)";
+  }
+
+  function pulseNode(row, col){
+    var el = cellEl(row, col);
+    if (!el) return;
+    el.classList.add("avatar-pulse");
+    setTimeout(function(){ el.classList.remove("avatar-pulse"); }, 320);
+  }
+
+  function spawnTrail(row, col){
+    var p = cellCenter(row, col);
+    var dot = document.createElement("div");
+    dot.className = "trail-dot";
+    dot.style.left = p.x + "px";
+    dot.style.top = p.y + "px";
+    avatarLayer.appendChild(dot);
+    setTimeout(function(){ if (dot.parentNode) dot.parentNode.removeChild(dot); }, 520);
+  }
+
+  function updateFacing(fromPos, toPos){
+    var dx = toPos.col - fromPos.col;
+    if (dx !== 0) avatarFacing.classList.toggle("flip", dx < 0);
+  }
+
+  function animateAvatarPath(path){
+    var startPos = { row: playerPosition.row, col: playerPosition.col };
+    var i = 0;
+    if (path.length > 0) avatarFigure.classList.add("walking");
+    function step(){
+      if (i >= path.length){
+        avatarFigure.classList.remove("walking");
+        avatarFigure.classList.add("arrive");
+        setTimeout(function(){ avatarFigure.classList.remove("arrive"); }, 320);
+        return;
+      }
+      var n = path[i];
+      var prev = i > 0 ? path[i - 1] : startPos;
+      updateFacing(prev, n);
+      if (i > 0) spawnTrail(path[i - 1].row, path[i - 1].col);
+      moveAvatarTo(n.row, n.col);
+      pulseNode(n.row, n.col);
+      playerPosition = { row: n.row, col: n.col };
+      i++;
+      setTimeout(step, HOP_MS);
+    }
+    step();
+  }
+
+  // ---------- HUD ----------
+  function updateHud(){
+    scoreVal.textContent = score;
+
+    var mm = Math.floor(timeLeft / 60), ss = timeLeft % 60;
+    timerVal.textContent = (mm < 10 ? "0" : "") + mm + ":" + (ss < 10 ? "0" : "") + ss;
+    timerVal.classList.toggle("warn", timeLeft <= 10);
+
+    traceVal.textContent = Math.round(trace) + "%";
+    traceVal.classList.remove("trace-elevated","trace-warning","trace-critical");
+    if (trace >= 90) traceVal.classList.add("trace-critical");
+    else if (trace >= 75) traceVal.classList.add("trace-warning");
+    else if (trace >= 50) traceVal.classList.add("trace-elevated");
+
+    var totalSecured = bankedGB + unbankedGB;
+    dataVal.textContent = Math.floor(totalSecured) + " / " + TARGET_GB + " GB";
+    var pct = Math.min(100, (totalSecured / TARGET_GB) * 100);
+    objBar.style.width = pct + "%";
+    objBar.classList.toggle("complete", objectiveComplete);
+    objLabel.textContent = objectiveComplete ? "OBJECTIVE COMPLETE // EXTRACTION AVAILABLE" : "OBJECTIVE — EXFILTRATE DATA";
+
+    bankedVal.textContent = Math.floor(bankedGB) + " GB";
+    onboardVal.textContent = Math.floor(unbankedGB) + " GB";
+
+    if (objectiveComplete){
+      jackOutBtn.textContent = "JACK OUT // BANK LOOT";
+      jackOutBtn.disabled = false;
+      jackOutBtn.classList.add("primary");
+      jackOutBtn.classList.toggle("urgent", trace >= 75);
+    } else {
+      jackOutBtn.textContent = "OBJECTIVE INCOMPLETE";
+      jackOutBtn.disabled = true;
+      jackOutBtn.classList.remove("primary","urgent");
+    }
+  }
+
+  function floatText(text, cls){
+    var el = document.createElement("div");
+    el.className = "floater " + cls;
+    el.textContent = text;
+    feedbackEl.innerHTML = "";
+    feedbackEl.appendChild(el);
+    setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 900);
+  }
+
+  function toast(text){
+    var el = document.createElement("div");
+    el.className = "toast";
+    el.textContent = text;
+    document.getElementById("board-wrap").appendChild(el);
+    setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 3200);
+  }
+
+  // ---------- adjacency ----------
+  function isAdjacent(a, b){
+    var dr = Math.abs(a.row - b.row), dc = Math.abs(a.col - b.col);
+    return Math.max(dr, dc) === 1;
+  }
+  function inChain(node){
+    return chain.some(function(n){ return n.row === node.row && n.col === node.col; });
+  }
+  function sameAsIndex(node, idx){
+    return chain[idx] && chain[idx].row === node.row && chain[idx].col === node.col;
+  }
+  function computeActiveType(chainArr){
+    var active = null;
+    for (var i = 0; i < chainArr.length; i++){
+      active = (chainArr[i].type === "bus") ? null : chainArr[i].type;
+    }
+    return active;
+  }
+
+  // ---------- chain interaction ----------
+  function nodeFromPoint(x, y){
+    var el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    var nodeEl = el.closest(".node");
+    if (!nodeEl) return null;
+    var row = parseInt(nodeEl.getAttribute("data-row"), 10);
+    var col = parseInt(nodeEl.getAttribute("data-col"), 10);
+    return { row: row, col: col, type: grid[row][col] };
+  }
+
+  function startChain(node){
+    if (!running) return;
+    playEnterSound();
+    playSelectSound(1);
+    chain = [node];
+    dragging = true;
+    busArmedFlashed = false;
+    setSelected();
+  }
+
+  function extendChain(node){
+    if (!dragging || !node) return;
+    var last = chain[chain.length - 1];
+    if (node.row === last.row && node.col === last.col) return;
+
+    if (chain.length >= 2 && sameAsIndex(node, chain.length - 2)){
+      chain.pop();
+      playDeselectSound();
+      setSelected();
+      return;
+    }
+    if (inChain(node)) return;
+    if (!isAdjacent(node, last)) return;
+
+    if (node.type !== "bus"){
+      var active = computeActiveType(chain);
+      if (active !== null && node.type !== active) return;
+    }
+
+    chain.push(node);
+    playSelectSound(chain.length);
+    setSelected();
+
+    if (chain.length === BUS_CHAIN_THRESHOLD && !busArmedFlashed){
+      busArmedFlashed = true;
+      toast("BUS OVERRIDE ARMED");
+    }
+  }
+
+  function endChain(){
+    if (!dragging) return;
+    dragging = false;
+
+    if (chain.length >= MIN_CHAIN){
+      var pathSnapshot = chain.slice();
+      resolveClear(chain.slice());
+      animateAvatarPath(pathSnapshot);
+    } else if (chain.length > 0){
+      combo = 0;
+      chain.forEach(function(n){
+        var el = cellEl(n.row, n.col);
+        if (el) el.classList.add("invalid");
+      });
+      setTimeout(function(){
+        var all = nodesLayer.querySelectorAll(".node");
+        all.forEach(function(el){ el.classList.remove("invalid","selected"); });
+      }, 260);
+    }
+    chain = [];
+    lineLayer.innerHTML = "";
+    updateHud();
+  }
+
+  // ---------- trace ----------
+  function hasBusOnBoard(){
+    for (var r = 0; r < ROWS; r++)
+      for (var c = 0; c < COLS; c++)
+        if (grid[r][c] === "bus") return true;
+    return false;
+  }
+
+  function applyTraceGain(gain){
+    var prev = trace;
+    trace = Math.min(100, trace + gain);
+    maxTrace = Math.max(maxTrace, trace);
+
+    if (trace >= 75 && prev < 75) toast("TRACE ESCALATION // SECURITY RESPONSE INCREASING");
+    if (trace >= 90 && prev < 90){
+      toast(objectiveComplete ? "CRITICAL TRACE // JACK OUT ADVISED" : "CRITICAL TRACE // OBJECTIVE INCOMPLETE, EXTRACTION LOCKED");
+    }
+
+    if (trace >= 100){
+      dataLostToTrace += unbankedGB;
+      unbankedGB = 0;
+      updateHud();
+      endRun("compromised");
+      return;
+    }
+  }
+
+  function handleJackOutClick(){
+    playEnterSound();
+    if (!objectiveComplete) { updateHud(); return; }
+    if (unbankedGB <= 0){ toast("NOTHING ONBOARD TO BANK"); return; }
+    var amount = +unbankedGB.toFixed(1);
+    bankedGB += unbankedGB;
+    unbankedGB = 0;
+    trace = Math.max(0, trace - TRACE_JACKOUT_REDUCTION);
+    extractionCount++;
+    updateHud();
+    toast("EXTRACTION SUCCESSFUL // BANKED " + amount + " GB");
+  }
+
+  // ---------- clearing / gravity ----------
+  function resolveClear(nodes){
+    var len = nodes.length;
+    var basePoints = 0, gbGain = 0;
+    nodes.forEach(function(n){
+      basePoints += META[n.type].value;
+      gbGain += META[n.type].gb;
+    });
+    gbGain = +gbGain.toFixed(1);
+
+    var now = Date.now();
+    if (now - lastClearTime < COMBO_WINDOW_MS) combo += 1;
+    else combo = 1;
+    lastClearTime = now;
+    maxCombo = Math.max(maxCombo, combo);
+    var comboMult = Math.min(combo, 8);
+
+    var lengthBonus = 1 + Math.max(0, len - MIN_CHAIN) * 0.15;
+    var points = Math.round(basePoints * lengthBonus * comboMult);
+
+    score += points;
+    unbankedGB += gbGain;
+    chainLengths.push(len);
+    nodes.forEach(function(n){ typeClearCounts[n.type] = (typeClearCounts[n.type] || 0) + 1; });
+    var usedBus = nodes.some(function(n){ return n.type === "bus"; });
+    if (usedBus) busOverridesUsedTotal++;
+
+    floatText("+" + points, "points");
+    if (comboMult > 1){
+      var comboText = document.createElement("div");
+      comboText.className = "floater combo";
+      comboText.textContent = "×" + comboMult + " CHAIN LINK";
+      feedbackEl.appendChild(comboText);
+      setTimeout(function(){ if (comboText.parentNode) comboText.parentNode.removeChild(comboText); }, 900);
+    }
+    var dataText = document.createElement("div");
+    dataText.className = "floater data";
+    dataText.textContent = "+" + gbGain + " GB ONBOARD";
+    feedbackEl.appendChild(dataText);
+    setTimeout(function(){ if (dataText.parentNode) dataText.parentNode.removeChild(dataText); }, 900);
+
+    var avgValue = basePoints / len;
+    var traceGain = 0.6
+      + Math.max(0, len - MIN_CHAIN) * 0.3
+      + (avgValue / 13) * 1.4
+      + (comboMult > 1 ? (comboMult - 1) * 0.3 : 0);
+    if (trace >= 90) traceGain *= 1.5;
+    else if (trace >= 75) traceGain *= 1.2;
+
+    applyTraceGain(traceGain);
+    if (!running) return;
+
+    nodes.forEach(function(n){ grid[n.row][n.col] = null; });
+    for (var c = 0; c < COLS; c++){
+      var stack = [];
+      for (var r = ROWS - 1; r >= 0; r--){
+        if (grid[r][c] !== null) stack.push(grid[r][c]);
+      }
+      var newCol = [];
+      for (var i = 0; i < ROWS - stack.length; i++) newCol.push(weightedType());
+      newCol = newCol.concat(stack.slice().reverse());
+      for (var r2 = 0; r2 < ROWS; r2++) grid[r2][c] = newCol[r2];
+    }
+
+    var spawnedBus = false;
+    if (len >= BUS_CHAIN_THRESHOLD && !hasBusOnBoard()){
+      var br = Math.floor(Math.random() * ROWS), bc = Math.floor(Math.random() * COLS);
+      grid[br][bc] = "bus";
+      spawnedBus = true;
+    }
+
+    render();
+    updateHud();
+
+    if (!objectiveComplete && (bankedGB + unbankedGB) >= TARGET_GB){
+      objectiveComplete = true;
+      objectiveCompletedAtElapsed = RUN_SECONDS - timeLeft;
+      toast("OBJECTIVE COMPLETE — EXTRACTION AVAILABLE");
+      updateHud();
+    }
+    if (spawnedBus){
+      toast("SYSTEM BUS OVERRIDE GENERATED");
+    }
+
+    var hasEncrypted = nodes.some(function(n){ return n.type === "encrypted"; });
+    if (hasEncrypted && !breachActive){
+      startBreach();
+    }
+  }
+
+  // ---------- breach terminal minigame ----------
+  var breachSequence = [];
+  var breachInput = [];
+  var breachAcceptingInput = false;
+  var breachCountdownHandle = null;
+  var breachTimeoutHandle = null;
+  var BREACH_TYPES = ["security","encrypted","system","power","crypto","schematic"];
+
+  function shuffledTypes(){
+    var arr = BREACH_TYPES.slice();
+    for (var i = arr.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function startBreach(){
+    breachActive = true;
+    breachAcceptingInput = false;
+    clearInterval(timerHandle);
+
+    breachSequence = [];
+    for (var i = 0; i < BREACH_SEQUENCE_LEN; i++){
+      breachSequence.push(BREACH_TYPES[Math.floor(Math.random() * BREACH_TYPES.length)]);
+    }
+    breachInput = [];
+
+    breachResultEl.textContent = "";
+    breachResultEl.className = "breach-result";
+
+    breachSlotsEl.innerHTML = "";
+    for (var s = 0; s < BREACH_SEQUENCE_LEN; s++){
+      var slot = document.createElement("div");
+      slot.className = "breach-slot";
+      slot.id = "breachSlot" + s;
+      breachSlotsEl.appendChild(slot);
+    }
+
+    var keyOrder = shuffledTypes();
+    breachKeysEl.innerHTML = "";
+    keyOrder.forEach(function(t){
+      var btn = document.createElement("div");
+      btn.className = "breach-key";
+      btn.setAttribute("data-type", t);
+      btn.setAttribute("disabled", "true");
+      btn.innerHTML = '<span class="glyph">' + META[t].glyph + '</span>';
+      btn.addEventListener("click", function(){
+        handleBreachTap(this.getAttribute("data-type"));
+      });
+      breachKeysEl.appendChild(btn);
+    });
+
+    breachOverlay.classList.remove("hidden");
+    playBreachReveal();
+  }
+
+  function playBreachReveal(){
+    var i = 0;
+    function revealNext(){
+      if (i >= breachSequence.length){
+        setTimeout(beginBreachInput, 300);
+        return;
+      }
+      var slot = document.getElementById("breachSlot" + i);
+      if (slot){
+        slot.classList.add("filled","reveal");
+        slot.innerHTML = '<span class="glyph">' + META[breachSequence[i]].glyph + '</span>';
+      }
+      i++;
+      setTimeout(revealNext, BREACH_REVEAL_MS);
+    }
+    revealNext();
+  }
+
+  function beginBreachInput(){
+    for (var s = 0; s < BREACH_SEQUENCE_LEN; s++){
+      var slot = document.getElementById("breachSlot" + s);
+      if (slot){ slot.className = "breach-slot"; slot.innerHTML = ""; }
+    }
+    breachInput = [];
+    breachAcceptingInput = true;
+    breachKeysEl.querySelectorAll(".breach-key").forEach(function(btn){ btn.removeAttribute("disabled"); });
+
+    var elapsed = 0;
+    var stepMs = 90;
+    breachTimerFill.style.width = "100%";
+    breachCountdownHandle = setInterval(function(){
+      elapsed += stepMs;
+      var pct = Math.max(0, 100 - (elapsed / BREACH_TIME_LIMIT_MS) * 100);
+      breachTimerFill.style.width = pct + "%";
+    }, stepMs);
+    breachTimeoutHandle = setTimeout(function(){
+      if (breachAcceptingInput) breachFail("TIME EXPIRED");
+    }, BREACH_TIME_LIMIT_MS);
+  }
+
+  function handleBreachTap(type){
+    if (!breachAcceptingInput) return;
+    playSelectSound(1);
+    var idx = breachInput.length;
+    var slot = document.getElementById("breachSlot" + idx);
+    if (slot){
+      slot.classList.add("filled");
+      slot.innerHTML = '<span class="glyph">' + META[type].glyph + '</span>';
+    }
+    breachInput.push(type);
+
+    if (type !== breachSequence[idx]){
+      breachFail("CIPHER REJECTED");
+      return;
+    }
+    if (breachInput.length === breachSequence.length){
+      breachSuccess();
+    }
+  }
+
+  function stopBreachTimers(){
+    clearInterval(breachCountdownHandle);
+    clearTimeout(breachTimeoutHandle);
+  }
+
+  function breachSuccess(){
+    breachAcceptingInput = false;
+    stopBreachTimers();
+    playEnterSound();
+    breachKeysEl.querySelectorAll(".breach-key").forEach(function(btn){ btn.setAttribute("disabled","true"); });
+    unbankedGB += BREACH_SUCCESS_GB;
+    score += BREACH_SUCCESS_SCORE;
+    breachResultEl.textContent = "CIPHER CRACKED // +" + BREACH_SUCCESS_GB + " GB";
+    breachResultEl.className = "breach-result success";
+    updateHud();
+    setTimeout(closeBreach, 1000);
+  }
+
+  function breachFail(reason){
+    breachAcceptingInput = false;
+    stopBreachTimers();
+    playDeselectSound();
+    breachKeysEl.querySelectorAll(".breach-key").forEach(function(btn){ btn.setAttribute("disabled","true"); });
+    applyTraceGain(BREACH_FAIL_TRACE);
+    breachResultEl.textContent = reason;
+    breachResultEl.className = "breach-result fail";
+    updateHud();
+    setTimeout(closeBreach, 1000);
+  }
+
+  function closeBreach(){
+    breachOverlay.classList.add("hidden");
+    breachActive = false;
+    stopBreachTimers();
+    if (running){
+      clearInterval(timerHandle);
+      timerHandle = setInterval(tick, 1000);
+    }
+  }
+
+  // ---------- pointer wiring ----------
+  boardEl.addEventListener("pointerdown", function(e){
+    var node = nodeFromPoint(e.clientX, e.clientY);
+    if (node) startChain(node);
+    e.preventDefault();
+  });
+  window.addEventListener("pointermove", function(e){
+    if (!dragging) return;
+    var node = nodeFromPoint(e.clientX, e.clientY);
+    if (node) extendChain(node);
+    e.preventDefault();
+  }, { passive: false });
+  window.addEventListener("pointerup", endChain);
+  window.addEventListener("pointercancel", endChain);
+  boardEl.addEventListener("touchmove", function(e){ e.preventDefault(); }, { passive: false });
+
+  // ---------- timer / run lifecycle ----------
+  function tick(){
+    if (!running) return;
+    timeLeft -= 1;
+    updateHud();
+    if (timeLeft <= 0){
+      timeLeft = 0;
+      updateHud();
+      endRun("timeout");
+    }
+  }
+
+  function classify(){
+    var totalCleared = 0;
+    for (var k in typeClearCounts) totalCleared += typeClearCounts[k];
+    var avg = chainLengths.length ? (chainLengths.reduce(function(a,b){return a+b;},0) / chainLengths.length) : 0;
+    var securityShare = typeClearCounts.security / Math.max(1, totalCleared);
+    var fastCompletion = objectiveComplete && objectiveCompletedAtElapsed !== null &&
+                          objectiveCompletedAtElapsed <= RUN_SECONDS * 0.45;
+    var overstayed = dataLostToTrace > 0 || (bankedGB + unbankedGB) >= TARGET_GB * 1.5;
+
+    if (avg >= 5.5 || busOverridesUsedTotal >= 2)
+      return { tag:"ARCHITECT", desc:"elaborate, deliberate path construction" };
+    if (securityShare >= 0.35)
+      return { tag:"WRECKER", desc:"tore through defensive processes" };
+    if (overstayed)
+      return { tag:"GREEDY", desc:"stayed long after the job was done" };
+    if (fastCompletion)
+      return { tag:"SPEEDRUNNER", desc:"objective cleared with time to spare" };
+    return { tag:"GHOST", desc:"minimal footprint, clean uplink" };
+  }
+
+  function endRun(reason){
+    if (!running) return;
+    running = false;
+    clearInterval(timerHandle);
+    stopHum();
+    dragging = false; chain = [];
+
+    if (reason === "abandoned"){
+      dataLostToTrace += unbankedGB;
+      unbankedGB = 0;
+    }
+
+    var avg = chainLengths.length ? (chainLengths.reduce(function(a,b){return a+b;},0) / chainLengths.length) : 0;
+    var longest = chainLengths.length ? Math.max.apply(null, chainLengths) : 0;
+    var cls = classify();
+
+    var statusEl = document.getElementById("reportStatus");
+    if (reason === "compromised"){
+      statusEl.textContent = "CONNECTION COMPROMISED // UNBANKED DATA LOST";
+      statusEl.classList.add("fail");
+    } else if (reason === "abandoned"){
+      statusEl.textContent = "RUN ABANDONED // UNBANKED DATA FORFEITED";
+      statusEl.classList.add("fail");
+    } else if (objectiveComplete){
+      statusEl.textContent = "UPLINK CLOSED // OBJECTIVE COMPLETE";
+      statusEl.classList.remove("fail");
+    } else {
+      statusEl.textContent = "UPLINK TIMED OUT // OBJECTIVE INCOMPLETE";
+      statusEl.classList.add("fail");
+    }
+
+    document.getElementById("rBanked").textContent = Math.floor(bankedGB) + " GB";
+    document.getElementById("rLost").textContent = Math.floor(dataLostToTrace) + " GB";
+    document.getElementById("rExtractions").textContent = extractionCount;
+    document.getElementById("rMaxTrace").textContent = Math.round(maxTrace) + "%";
+    document.getElementById("rScore").textContent = score;
+    document.getElementById("rLongest").textContent = longest;
+    document.getElementById("rAvg").textContent = avg.toFixed(1);
+    document.getElementById("rCombo").textContent = "×" + maxCombo;
+    document.getElementById("rTag").textContent = cls.tag;
+    document.getElementById("rTagDesc").textContent = cls.desc;
+
+    summaryOverlay.classList.remove("hidden");
+  }
+
+  jackOutBtn.addEventListener("click", handleJackOutClick);
+
+  abandonBtn.addEventListener("click", function(){
+    if (!running) return;
+    playDeselectSound();
+    if (!abandonArmed){
+      abandonArmed = true;
+      abandonBtn.textContent = "TAP TO CONFIRM";
+      abandonBtn.classList.add("urgent");
+      clearTimeout(abandonArmTimeout);
+      abandonArmTimeout = setTimeout(function(){
+        abandonArmed = false;
+        abandonBtn.textContent = "ABANDON";
+        abandonBtn.classList.remove("urgent");
+      }, 3000);
+      return;
+    }
+    clearTimeout(abandonArmTimeout);
+    abandonArmed = false;
+    abandonBtn.textContent = "ABANDON";
+    abandonBtn.classList.remove("urgent");
+    endRun("abandoned");
+  });
+  reconnectBtn.addEventListener("click", function(){
+    playEnterSound();
+    resetRun();
+  });
+
+  startBtn.addEventListener("click", function(){
+    playEnterSound();
+    titleScreen.classList.add("hidden");
+    resetRun();
+  });
+
+  profileBtn.addEventListener("click", function(){
+    playEnterSound();
+    profileOverlay.classList.remove("hidden");
+  });
+
+  saveProfileBtn.addEventListener("click", function(){
+    playEnterSound();
+    profileOverlay.classList.add("hidden");
+  });
+
+  window.addEventListener("resize", renderPathways);
+  newGrid();
+  render();
+  renderPathways();
+  placeAvatarInstant(START_ROW, START_COL);
+  updateHud();
+})();
+</script>
+</body>
+</html>
+```
